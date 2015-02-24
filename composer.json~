@@ -3,7 +3,7 @@
     "description": "Cloud Manager",
     "autoload": {
         "psr-4": {
-            "cloudman\\": "lib/"
+            "cloudman\\": "lib/",
         }
     },
     "require": {
