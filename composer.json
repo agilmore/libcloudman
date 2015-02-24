@@ -1,0 +1,18 @@
+{
+    "name": "agilmore/libcloudman",
+    "description": "Cloud Manager",
+    "autoload": {
+        "psr-4": {
+            "cloudman\\": "lib/",
+        }
+    },
+    "require": {
+        "aws/aws-sdk-php": "~2.7"
+    },
+    "authors": [
+        {
+            "name": "Andrew Gilmore",
+            "email": "andrew@gilmore.me.uk"
+        }
+    ]
+}
