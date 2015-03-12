@@ -2,7 +2,8 @@
 
 namespace cloudman\aws;
 
-require_once dirname(__FILE__) . '/../..//vendor/autoload.php';
+require_once dirname(__FILE__) . '/../ServiceProvider.php';
+require_once dirname(__FILE__) . '/../../vendor/autoload.php';
 
 use Aws\Ec2\Ec2Client;
 use cloudman\provision\CloudInit;
@@ -14,11 +15,10 @@ use cloudman\VMNetworkSettings;
 use cloudman\VMStorage;
 use cloudman\VmType;
 
-class AwsServiceProvider implements ServiceProvider{
+class AwsServiceProvider implements ServiceProvider {
 
   private $supports = array(
     'cloud-init',
-
   );
   private $options = array();
 
@@ -64,6 +64,7 @@ class AwsServiceProvider implements ServiceProvider{
       'ImageId' => $image->getNativeReference(),
       'MinCount' => 1,
       'MaxCount' => 1,
+      'KeyName' => 'controller',
       'SecurityGroups' => isset($extra_options['security_groups']) ? $extra_options['security_groups'] : array('default'),
       'UserData' => $template->render($vm),
       'InstanceType' => $type->getNativeName(),
@@ -134,17 +135,86 @@ class AwsServiceProvider implements ServiceProvider{
 
     $instance = $ec2->runInstances($instance);
 
-    $vm->setAwsResponse($instance->get('Instances'));
+    $vm_info = $instance->get('Instances')[0];
+    $vm->setAwsResponse($vm_info);
+
+    $instance_id = $vm_info['InstanceId'];
+
+    $hostname = $vm_info['PrivateDnsName'];
+    $vm->setHostName($hostname);
+
+    $create_tags = array(
+      'DryRun' => false,
+      'Resources' => array($instance_id),
+    );
+    foreach ($extra_options['tags'] as $key => $value) {
+      $create_tags['Tags'][] = array(
+        'Key' => $key,
+        'Value' => $value,
+      );
+    }
+    $ec2->createTags($create_tags);
+
+    return $vm;
+  }
+
+  public function findVMs($search) {
+    if (empty($search['region']) || !($search['region'] instanceof AwsRegion)) {
+      throw new Exception('An AWS region must be specified');
+    }
+
+    $ec2 = Ec2Client::factory(array(
+      'key' => $this->options['key'],
+      'secret' => $this->options['secret'],
+      'region' => $search['region']->getRegion(),
+    ));
+    $args = array(
+      'DryRun' => false,
+    );
+    if (!empty($search['id'])) {
+      $args['InstanceIds'] = $search['id'];
+    }
+    if (!empty($search['name'])) {
+      $args['Filters'] = array(
+        array(
+          'Name' => 'tag:Name',
+          'Values' => array($search['name'])
+        )
+      );
+    }
+    $instances = $ec2->describeInstances($args);
+    //var_dump($instances->get('Reservations'));
+    return $instances->get('Reservations');
   }
 
   // TODO: getTypes
 
-  public static function getOptions() {
+  public static function getArguments() {
     return array(
       '__construct' => array(
-        'key' => 'AWS Access Key ID',
-        'secret' => 'AWS Secret Access Key'
+        'key' => array(
+          'description' => 'AWS Access Key ID',
+          'type' => 'string',
+        ),
+        'secret' => array(
+          'description' => 'AWS Secret Access Key',
+          'type' => 'string',
+        )
       ),
+      'findVMs' => array(
+        'id' => array(
+          'description' => 'The EC2 Instance Id',
+          'type' => 'string',
+        ),
+        'region' => array(
+          'description' => 'The AWS Region to search',
+          'type' => 'AWSRegion',
+        ),
+        'name' => array(
+          'description' => 'The Instance name',
+          'type' => 'string'
+        )
+      )
     );
   }
 }

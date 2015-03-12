@@ -2,7 +2,9 @@
 
 namespace cloudman;
 
-interface ServiceProvider {
+require_once dirname(__FILE__) . '/DynamicArguments.php';
+
+interface ServiceProvider extends DynamicArguments {
   public function supports($key = null);
   public function createVM(VmImage $image,
                            VmType $type,
@@ -11,6 +13,5 @@ interface ServiceProvider {
                            VmStorage $storage,
                            ProvisionTemplate $template,
                            array $extra_options = array());
-
-  public static function getOptions();
+  public function findVMs($search);
 }

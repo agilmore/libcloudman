@@ -18,6 +18,7 @@ class AwsVm implements Vm {
   private $region;
   private $network;
   private $storage;
+  private $hostname;
 
   private $awsResponse;
 
@@ -61,5 +62,17 @@ class AwsVm implements Vm {
 
   public function setAwsResponse(array $response) {
     $this->awsResponse = $response;
+  }
+
+  public function getAwsResponse() {
+    return $this->awsResponse;
+  }
+
+  public function setHostName($hostname) {
+    $this->hostname = $hostname;
+  }
+
+  public function getHostName() {
+    return $this->hostname;
   }
 }

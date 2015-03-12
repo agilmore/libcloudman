@@ -5,7 +5,7 @@ namespace cloudman\aws;
 
 use cloudman\VmType;
 
-class AWSInstanceType implements VmType {
+class AwsInstanceType implements VmType {
 
   private $type = 'm1.small';
 
